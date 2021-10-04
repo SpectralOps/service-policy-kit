@@ -1,0 +1,16 @@
+---
+http_interactions:
+- request:
+    uri: http://{{host}}/api
+    vars:
+      name:
+        from: /body/person/name
+        kind: json
+        default: armstrong
+  response:
+    status_code: "200"
+- request:
+    uri: http://{{host}}/{{name}}
+  response:
+    status_code: "200"
+    body: hello, erlang

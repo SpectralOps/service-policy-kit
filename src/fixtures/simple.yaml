@@ -1,0 +1,15 @@
+---
+http_interactions:
+- request:
+    uri: http://{{host}}/one
+    vars:
+      foo:
+        from: /body
+        expr: "next: (.*)"
+  response:
+    status_code: "200"
+- request:
+    uri: http://{{host}}/{{foo}}
+  response:
+    status_code: "200"
+    body: three
