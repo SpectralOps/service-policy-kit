@@ -1349,7 +1349,7 @@ dependencies = [
 
 [[package]]
 name = "service_policy_kit"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "atty",
