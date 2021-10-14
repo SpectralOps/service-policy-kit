@@ -1,6 +1,6 @@
 [package]
 name = "service_policy_kit"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Dotan Nahum <jondotan@gmail.com>"]
 edition = "2018"
 license = "Apache-2.0"

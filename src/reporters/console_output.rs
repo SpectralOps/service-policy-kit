@@ -161,7 +161,13 @@ impl ReporterOutput for ConsoleOutput {
                 style(format!("{}ms", check_results.duration.unwrap().as_millis())).dim(),
             )
             .unwrap();
-            writeln!(self.buffer, "{}", check_results.error.clone().unwrap()).unwrap();
+            writeln!(
+                self.buffer,
+                "{} error: {}",
+                style("└─").red(),
+                check_results.error.clone().unwrap()
+            )
+            .unwrap();
         } else {
             writeln!(
                 self.buffer,

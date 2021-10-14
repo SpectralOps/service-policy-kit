@@ -56,6 +56,7 @@ impl OpenAPI {
                             vars: None,
                             request_id: None,
                         }),
+                        invalid: None,
                         benchmark: None,
                         cert: None,
                         examples: None,

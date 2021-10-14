@@ -97,6 +97,16 @@ pub struct CheckResult {
     pub kind: String,
 }
 impl CheckResult {
+    pub fn invalid_err(kind: &str, interaction: &Interaction, text: &str) -> Self {
+        CheckResult {
+            request: interaction.request.clone(),
+            response: None,
+            violations: vec![],
+            duration: Some(Duration::new(0, 0)),
+            error: Some(text.to_string()),
+            kind: kind.to_string(),
+        }
+    }
     pub fn invalid(kind: &str, interaction: &Interaction) -> Self {
         CheckResult {
             request: interaction.request.clone(),
@@ -184,6 +194,8 @@ pub struct Interaction {
     pub request: Request,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub response: Option<Response>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invalid: Option<Response>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub examples: Option<HashMap<String, Response>>,
     #[serde(skip_serializing_if = "Option::is_none")]

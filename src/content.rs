@@ -25,9 +25,16 @@ impl<'a> Check for ContentCheck<'a> {
             match r {
                 Ok(resp) => {
                     let matcher = RegexMatcher::new(NAME);
+                    let vs = matcher.is_match(&resp, interaction.invalid.as_ref());
+                    if vs.is_empty() {
+                        return CheckResult::invalid_err(
+                            self.name(),
+                            interaction,
+                            "matched invalid response",
+                        );
+                    }
                     let vs = matcher.is_match(&resp, interaction.response.as_ref());
 
-                    // XXX align kind to self.name
                     CheckResult {
                         kind: NAME.to_string(),
                         request: interaction.request.clone(),
