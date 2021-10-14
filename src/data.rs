@@ -362,6 +362,7 @@ pub struct BasicAuth {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AWSAuth {
     pub region: Option<String>,
+    pub endpoint: Option<String>,
     pub service: String,
     pub key: String,
     pub secret: String,

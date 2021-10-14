@@ -65,8 +65,13 @@ impl Sender for ReqwestSender {
         if let Some(aws) = &request.aws_auth {
             let credentials = AwsCredentials::new(aws.key.clone(), aws.secret.clone(), None, None);
             let default_region = "us-east-1".to_string();
-            let region: Region =
-                Region::from_str(aws.region.as_ref().unwrap_or(&default_region)).unwrap();
+            let reg_str = aws.region.as_ref().unwrap_or(&default_region);
+
+            let region: Region = Region::from_str(reg_str).unwrap_or_else(|_| Region::Custom {
+                name: reg_str.to_string(),
+                endpoint: aws.endpoint.clone().unwrap_or_default(),
+            });
+
             let mut headers = HeaderMap::new();
 
             // note the path is '/' because at this point we only care about checking service-level access
