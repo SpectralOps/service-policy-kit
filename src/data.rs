@@ -270,6 +270,14 @@ impl Interaction {
                 .map(|region| render_with_vars(region.clone(), &vars, &fmtstring));
         }
 
+        req.form = req.form.map(|mut vals| {
+            for val in vals.values_mut() {
+                let rendered = render_with_vars(val.clone(), &vars, &fmtstring);
+                *val = rendered;
+            }
+            vals
+        });
+
         // mising uri_list
         req.headers = req.headers.map(|mut headers| {
             for val in headers.values_mut() {
