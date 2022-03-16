@@ -82,7 +82,7 @@ impl<'a> SequenceRunner<'a> {
             results.iter().all(|r| !r.violations.is_empty())
                 && results.iter().all(|r| r.error.is_none())
         } else {
-            results.iter().all(|r| !r.violations.is_empty())
+            results.iter().all(|r| r.violations.is_empty())
                 && results.iter().all(|r| r.error.is_none())
         };
         RunnerReport { ok, results }
