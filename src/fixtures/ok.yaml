@@ -1,0 +1,6 @@
+---
+http_interactions:
+- request:
+    uri: http://{{host}}/api/ok
+  response:
+    status_code: "200"

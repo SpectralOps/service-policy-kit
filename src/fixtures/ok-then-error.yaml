@@ -1,0 +1,10 @@
+---
+http_interactions:
+- request:
+    uri: http://{{host}}/api/ok
+  response:
+    status_code: "200"
+- request:
+    uri: http://{{host}}/api/error
+  response:
+    status_code: "400"
