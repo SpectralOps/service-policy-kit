@@ -96,40 +96,34 @@ pub struct RunnerReport {
 
 #[cfg(test)]
 mod tests {
-    use crate::sender::{SenderBuilder, SenderOptions};
-    use crate::data::{Context, Interaction};
-    use crate::runner::SequenceRunner;
     use mockito::{mock, server_address};
-    use std::collections::HashMap;
+    use super::*;
 
     const ITC_OK: &str = include_str!("fixtures/ok.yaml");
     const ITC_OK_THEN_ERROR: &str = include_str!("fixtures/ok-then-error.yaml");
 
-    #[test]
-    fn test_runner_return_status_no_violations() {
-        let _m1 = mock("GET", "/api/ok").with_status(200).create();
-        let interactions = Interaction::sequence_interactions_from_yaml(ITC_OK).unwrap();
+    fn execute_test(seq: &str, flip: bool) -> RunnerReport {
+        let interactions = Interaction::sequence_interactions_from_yaml(seq).unwrap();
         let mut ctx = Context::new();
         ctx.vars_bag
             .insert("host".to_string(), server_address().to_string());
 
         let sender = SenderBuilder::build(SenderOptions { dry_run: None });
-        let runner = SequenceRunner::new(sender.as_ref(), false, HashMap::new());
+        let runner = SequenceRunner::new(sender.as_ref(), flip, HashMap::new());
         let report = runner.run(&mut ctx, &interactions);
+        return report;
+    }
+
+    #[test]
+    fn test_runner_return_status_no_violations() {
+        let report = execute_test(ITC_OK, false);
         assert_eq!(report.ok, true);
     }
 
     #[test]
     fn test_runner_return_status_with_violations() {
         let _m1 = mock("GET", "/api/ok").with_status(400).create();
-        let interactions = Interaction::sequence_interactions_from_yaml(ITC_OK).unwrap();
-        let mut ctx = Context::new();
-        ctx.vars_bag
-            .insert("host".to_string(), server_address().to_string());
-
-        let sender = SenderBuilder::build(SenderOptions { dry_run: None });
-        let runner = SequenceRunner::new(sender.as_ref(), false, HashMap::new());
-        let report = runner.run(&mut ctx, &interactions);
+        let report = execute_test(ITC_OK, false);
         assert_eq!(report.ok, false);
     }
 
@@ -137,42 +131,21 @@ mod tests {
     fn test_runner_return_status_with_some_violations() {
         let _m1 = mock("GET", "/api/ok").with_status(200).create();
         let _m2 = mock("GET", "/api/error").with_status(200).create();
-        let interactions = Interaction::sequence_interactions_from_yaml(ITC_OK_THEN_ERROR).unwrap();
-        let mut ctx = Context::new();
-        ctx.vars_bag
-            .insert("host".to_string(), server_address().to_string());
-
-        let sender = SenderBuilder::build(SenderOptions { dry_run: None });
-        let runner = SequenceRunner::new(sender.as_ref(), false, HashMap::new());
-        let report = runner.run(&mut ctx, &interactions);
+        let report = execute_test(ITC_OK_THEN_ERROR, false);
         assert_eq!(report.ok, false);
     }
 
     #[test]
     fn test_runner_flip_return_status_no_violations() {
         let _m1 = mock("GET", "/api/ok").create();
-        let interactions = Interaction::sequence_interactions_from_yaml(ITC_OK).unwrap();
-        let mut ctx = Context::new();
-        ctx.vars_bag
-            .insert("host".to_string(), server_address().to_string());
-
-        let sender = SenderBuilder::build(SenderOptions { dry_run: None });
-        let runner = SequenceRunner::new(sender.as_ref(), true, HashMap::new());
-        let report = runner.run(&mut ctx, &interactions);
+        let report = execute_test(ITC_OK, true);
         assert_eq!(report.ok, false);
     }
 
     #[test]
     fn test_runner_flip_return_status_with_violations() {
         let _m1 = mock("GET", "/api/ok").with_status(400).create();
-        let interactions = Interaction::sequence_interactions_from_yaml(ITC_OK).unwrap();
-        let mut ctx = Context::new();
-        ctx.vars_bag
-            .insert("host".to_string(), server_address().to_string());
-
-        let sender = SenderBuilder::build(SenderOptions { dry_run: None });
-        let runner = SequenceRunner::new(sender.as_ref(), true, HashMap::new());
-        let report = runner.run(&mut ctx, &interactions);
+        let report = execute_test(ITC_OK, true);
         assert_eq!(report.ok, true);
     }
 
@@ -180,14 +153,7 @@ mod tests {
     fn test_runner_flip_return_status_with_some_violations() {
         let _m1 = mock("GET", "/api/ok").with_status(200).create();
         let _m2 = mock("GET", "/api/error").with_status(200).create();
-        let interactions = Interaction::sequence_interactions_from_yaml(ITC_OK_THEN_ERROR).unwrap();
-        let mut ctx = Context::new();
-        ctx.vars_bag
-            .insert("host".to_string(), server_address().to_string());
-
-        let sender = SenderBuilder::build(SenderOptions { dry_run: None });
-        let runner = SequenceRunner::new(sender.as_ref(), true, HashMap::new());
-        let report = runner.run(&mut ctx, &interactions);
+        let report = execute_test(ITC_OK_THEN_ERROR, true);
         assert_eq!(report.ok, false);
     }
 }
