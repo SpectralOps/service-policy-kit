@@ -11,7 +11,8 @@ pub struct OpenAPI {
 }
 
 impl OpenAPI {
-    pub fn new(opts: HashMap<String, String>) -> Self {
+    #[must_use]
+    pub const fn new(opts: HashMap<String, String>) -> Self {
         Self { opts }
     }
     // XXX 'top' is not used
@@ -20,7 +21,7 @@ impl OpenAPI {
             Ok(spec) => spec
                 .paths
                 .iter()
-                .map(|(path, item)| {
+                .filter_map(|(path, item)| {
                     let verb = if item.get.is_some() {
                         "get"
                     } else if item.post.is_some() {
@@ -39,7 +40,7 @@ impl OpenAPI {
                             basic_auth: None,
                             aws_auth: None,
                             form: None,
-                            uri: format!("http://{{{{host}}}}{}", path),
+                            uri: format!("http://{{{{host}}}}{path}"),
                             id: None,
                             desc: None,
                             timeout_ms: None,
@@ -62,7 +63,6 @@ impl OpenAPI {
                         examples: None,
                     })
                 })
-                .flatten()
                 .collect::<Vec<_>>(),
             Err(_e) => vec![], // XXX not used
         };

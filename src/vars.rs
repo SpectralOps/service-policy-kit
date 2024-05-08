@@ -1,27 +1,32 @@
 use crate::data::{Response, VarInfo};
+use anyhow::{Context, Result as AnyResult};
 use serde_json;
 use serde_json::json;
 use std::collections::HashMap;
 
-pub fn extract(response: &Response, infos: &HashMap<String, VarInfo>) -> HashMap<String, String> {
+pub fn extract(
+    response: &Response,
+    infos: &HashMap<String, VarInfo>,
+) -> AnyResult<HashMap<String, String>> {
     let jsonres = json!({
         "body": response.body,
         "headers": response.headers,
         "status": response.status_code,
     });
     let mut res = HashMap::new();
-    infos.iter().for_each(|(k, v)| {
-        res.insert(k.to_string(), extract_var(&jsonres, v));
-    });
-    res
+    for (k, v) in infos {
+        res.insert(k.to_string(), extract_var(&jsonres, v)?);
+    }
+    Ok(res)
 }
-pub fn extract_var(v: &serde_json::Value, info: &VarInfo) -> String {
+
+pub fn extract_var(v: &serde_json::Value, info: &VarInfo) -> AnyResult<String> {
     let blank = json!("");
     let v = if info.kind == "json" {
         json!({
-            "body": serde_json::from_str(v.get("body").unwrap().as_str().unwrap()).unwrap_or_else(|_| json!({})),
-            "headers":v.get("headers").unwrap(),
-            "status":v.get("status").unwrap(),
+            "body": serde_json::from_str(v.get("body").context("body key not found")?.as_str().unwrap()).unwrap_or_else(|_| json!({})),
+            "headers":v.get("headers").context("header key not found")?,
+            "status":v.get("status").context("status key not found")?,
         })
     } else {
         v.clone()
@@ -38,27 +43,25 @@ pub fn extract_var(v: &serde_json::Value, info: &VarInfo) -> String {
     } else if final_value.is_boolean() {
         format!("{}", final_value.as_bool().unwrap())
     } else if final_value.is_null() {
-        "".to_string()
+        String::new()
     } else if final_value.is_f64() {
         format!("{}", final_value.as_f64().unwrap())
     } else if final_value.is_u64() {
         format!("{}", final_value.as_u64().unwrap())
     } else {
-        format!("{}", final_value)
+        format!("{final_value}")
     };
-    match &info.expr {
+    Ok(match &info.expr {
         Some(expr) => {
             let re = fancy_regex::Regex::new(expr).unwrap();
             let caps = re.captures(str_value.as_str()).unwrap();
-            if let Some(c) = caps {
+            caps.map_or_else(String::new, |c| {
                 let cap = if c.len() > 1 { c.get(1) } else { c.get(0) };
                 cap.unwrap().as_str().to_string()
-            } else {
-                "".to_string()
-            }
+            })
         }
         None => str_value,
-    }
+    })
 }
 #[cfg(test)]
 mod tests {
@@ -92,7 +95,7 @@ mod tests {
                 expr: Some("Bearer (.*)".into()),
                 kind: "regex".into(),
                 from: "/headers/Authentication/0".into(),
-                default: Some("".into()),
+                default: Some(String::new()),
             },
         );
         infos.insert(
@@ -121,7 +124,7 @@ mod tests {
             headers: Some(HashMap::new()),
             vars: None,
         };
-        let vars = extract(&resp, &infos);
+        let vars = extract(&resp, &infos).unwrap();
         assert_eq!(vars.get("person_name").unwrap(), "joe", "person_name");
 
         let resp = Response {
@@ -131,7 +134,7 @@ mod tests {
             headers: Some(HashMap::new()),
             vars: None,
         };
-        let vars = extract(&resp, &infos);
+        let vars = extract(&resp, &infos).unwrap();
         assert_eq!(vars.get("auth").unwrap(), "1337", "auth");
 
         let headers = hashmap! {
@@ -144,7 +147,7 @@ mod tests {
             headers: Some(headers),
             vars: None,
         };
-        let vars = extract(&resp, &infos);
+        let vars = extract(&resp, &infos).unwrap();
         assert_eq!(vars.get("token").unwrap(), "000foobar000", "token");
         assert_eq!(
             vars.get("body_default").unwrap(),
@@ -155,6 +158,6 @@ mod tests {
             vars.get("headers_default").unwrap(),
             "meh-headers",
             "headers_default"
-        )
+        );
     }
 }

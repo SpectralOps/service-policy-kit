@@ -3,6 +3,8 @@ use std::time::Instant;
 use crate::data::{Check, CheckResult, Context, Interaction, Sender};
 use crate::matcher::RegexMatcher;
 pub const NAME: &str = "content";
+
+#[allow(clippy::module_name_repetitions)]
 pub struct ContentCheck<'a> {
     sender: &'a dyn Sender,
 }

@@ -1,4 +1,4 @@
-use crate::data::{CheckResult, Interaction, ReporterOutput, Violation};
+use crate::data::{CheckResult, Interaction, ReporterOutput};
 
 use console::style;
 use console::Term;
@@ -13,10 +13,10 @@ pub struct ConsoleOutput {
 }
 
 pub fn diff_text(expected: &str, actual: &str) -> (String, String, String) {
-    let expected = format!("{:?}", expected);
+    let expected = format!("{expected:?}");
     let expected = &expected[1..expected.len() - 1];
 
-    let actual = format!("{:?}", actual);
+    let actual = format!("{actual:?}");
     let actual = &actual[1..actual.len() - 1];
 
     let Changeset { diffs, .. } = Changeset::new(expected, actual, " ");
@@ -35,76 +35,74 @@ pub fn diff_text(expected: &str, actual: &str) -> (String, String, String) {
 }
 
 impl ConsoleOutput {
-    pub fn new(config: &HashMap<String, String>) -> ConsoleOutput {
-        let buf = "".to_string();
-        ConsoleOutput::new_with_buffer(buf, config.contains_key("verbose"))
+    pub fn new(config: &HashMap<String, String>) -> Self {
+        let buf = String::new();
+        Self::new_with_buffer(buf, config.contains_key("verbose"))
     }
-    pub fn new_with_buffer(buffer: String, verbose: bool) -> ConsoleOutput {
-        ConsoleOutput { buffer, verbose }
+    pub const fn new_with_buffer(buffer: String, verbose: bool) -> Self {
+        Self { buffer, verbose }
     }
-    fn _print_diff_short(&self, benchdiffs: &[Violation]) -> String {
-        let mut out = "".to_string();
-        benchdiffs.iter().for_each(|b| {
-            out.push_str(
-                format!(
-                    "  {} {}: {}\n",
-                    style("expected:").green(),
-                    b.subject,
-                    b.recorded
-                )
-                .as_str(),
-            );
-            out.push_str(
-                format!(
-                    "       {} {}: {:?}\n",
-                    style("got:").red(),
-                    b.subject,
-                    b.wire
-                )
-                .as_str(),
-            );
-        });
-        out
-    }
-    fn _print_diff(&self, filter: &str, matchdiffs: &[Violation]) -> String {
-        let mut out = "".to_string();
+    // fn _print_diff_short(&self, benchdiffs: &[Violation]) -> String {
+    //     let mut out = String::new();
+    //     for b in benchdiffs {
+    //         out.push_str(
+    //             format!(
+    //                 "  {} {}: {}\n",
+    //                 style("expected:").green(),
+    //                 b.subject,
+    //                 b.recorded
+    //             )
+    //             .as_str(),
+    //         );
+    //         out.push_str(
+    //             format!(
+    //                 "       {} {}: {:?}\n",
+    //                 style("got:").red(),
+    //                 b.subject,
+    //                 b.wire
+    //             )
+    //             .as_str(),
+    //         );
+    //     }
+    //     out
+    // }
+    // fn _print_diff(&self, filter: &str, matchdiffs: &[Violation]) -> String {
+    //     let mut out = "".to_string();
 
-        let diffs = matchdiffs
-            .iter()
-            .filter(|m| m.subject == filter)
-            .collect::<Vec<_>>();
-        if !diffs.is_empty() {
-            out.push_str(format!("{}:\n", style(filter).bold()).as_str());
-            diffs.iter().for_each(|m| {
-                out.push_str(
-                    format!(
-                        "  {} {}: {}\n",
-                        style("expected:").green(),
-                        m.on.as_ref().unwrap_or(&"N/A".to_string()),
-                        m.recorded
-                    )
-                    .as_str(),
-                );
-                out.push_str(
-                    format!(
-                        "       {} {}: {:?}\n",
-                        style("got:").red(),
-                        m.on.as_ref().unwrap_or(&"N/A".to_string()),
-                        m.wire
-                    )
-                    .as_str(),
-                );
-                let (_, _, diff) = diff_text(
-                    &m.recorded,
-                    &m.wire.clone().unwrap_or_else(|| "".to_string()),
-                );
-                out.push_str(format!("      diff: {}\n", diff).as_str());
-            })
-        }
-        out
-    }
+    //     let diffs = matchdiffs
+    //         .iter()
+    //         .filter(|m| m.subject == filter)
+    //         .collect::<Vec<_>>();
+    //     if !diffs.is_empty() {
+    //         out.push_str(format!("{}:\n", style(filter).bold()).as_str());
+    //         for m in &diffs {
+    //             out.push_str(
+    //                 format!(
+    //                     "  {} {}: {}\n",
+    //                     style("expected:").green(),
+    //                     m.on.as_ref().unwrap_or(&"N/A".to_string()),
+    //                     m.recorded
+    //                 )
+    //                 .as_str(),
+    //             );
+    //             out.push_str(
+    //                 format!(
+    //                     "       {} {}: {:?}\n",
+    //                     style("got:").red(),
+    //                     m.on.as_ref().unwrap_or(&"N/A".to_string()),
+    //                     m.wire
+    //                 )
+    //                 .as_str(),
+    //             );
+    //             let (_, _, diff) =
+    //                 diff_text(&m.recorded, &m.wire.clone().unwrap_or_else(String::new));
+    //             out.push_str(format!("      diff: {diff}\n").as_str());
+    //         }
+    //     }
+    //     out
+    // }
 
-    fn overwrite_previous_term(&self) {
+    fn overwrite_previous_term() {
         let term = Term::stdout();
         if term.is_term() {
             term.clear_last_lines(1).unwrap();
@@ -144,12 +142,9 @@ impl ReporterOutput for ConsoleOutput {
             .unwrap();
             if self.verbose {
                 check_results.violations.iter().for_each(|v| {
-                    let (_, _, diff) = diff_text(
-                        &v.recorded,
-                        &v.wire.clone().unwrap_or_else(|| "".to_string()),
-                    );
+                    let (_, _, diff) = diff_text(&v.recorded, &v.wire.clone().unwrap_or_default());
                     writeln!(self.buffer, "      {}: {}", v.subject, diff).unwrap();
-                })
+                });
             }
         } else if check_results.error.is_some() {
             writeln!(
@@ -180,7 +175,7 @@ impl ReporterOutput for ConsoleOutput {
             .unwrap();
         }
 
-        self.overwrite_previous_term();
+        Self::overwrite_previous_term();
         self.buffer_to_term();
     }
 
@@ -191,8 +186,7 @@ impl ReporterOutput for ConsoleOutput {
         } else {
             let duration = results
                 .iter()
-                .map(|c| c.duration)
-                .flatten()
+                .filter_map(|c| c.duration)
                 .reduce(|d, acc| d + acc);
             write!(
                 self.buffer,
@@ -246,6 +240,7 @@ impl ReporterOutput for ConsoleOutput {
 mod tests {
     use super::*;
     use crate::data::Cause;
+    use crate::data::Violation;
     use std::time::Duration;
 
     #[test]
@@ -270,7 +265,7 @@ mod tests {
 "#,
         )
         .unwrap();
-        let buffer = "".to_string();
+        let buffer = String::new();
 
         let mut o = ConsoleOutput::new_with_buffer(buffer, true);
         o.start(&inter);
@@ -290,7 +285,7 @@ mod tests {
                 subject: "content".to_string(),
                 on: None,
                 wire: None,
-                recorded: "".to_string(),
+                recorded: String::new(),
             }],
         };
         o.report(&inter, &fake_result);
