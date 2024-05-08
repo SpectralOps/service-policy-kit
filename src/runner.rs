@@ -29,7 +29,10 @@ impl RunOptions {
         if verbose {
             rc.insert("verbose".to_string(), "true".to_string());
         }
-        reporters.insert(reporter.unwrap_or_else(|| "console".to_string()), rc);
+        if let Some(reporter) = reporter {
+            reporters.insert(reporter, rc);
+        }
+
         RunOptions {
             sender,
             reporters,
@@ -96,8 +99,8 @@ pub struct RunnerReport {
 
 #[cfg(test)]
 mod tests {
-    use mockito::{mock, server_address};
     use super::*;
+    use mockito::{mock, server_address};
 
     const ITC_OK: &str = include_str!("fixtures/ok.yaml");
     const ITC_OK_THEN_ERROR: &str = include_str!("fixtures/ok-then-error.yaml");
