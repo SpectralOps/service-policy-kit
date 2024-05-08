@@ -29,6 +29,7 @@ impl RunOptions {
         if verbose {
             rc.insert("verbose".to_string(), "true".to_string());
         }
+
         if let Some(reporter) = reporter {
             reporters.insert(reporter, rc);
         }
