@@ -37,6 +37,7 @@ impl ReqwestSender {
     }
 }
 impl Sender for ReqwestSender {
+    #[allow(clippy::too_many_lines)]
     fn send(&self, inter: &Interaction) -> AnyResult<Response> {
         let request = &inter.request;
         // as_request -> RQRequest
@@ -63,8 +64,10 @@ impl Sender for ReqwestSender {
         if let Some(form) = &request.form {
             rq_builder = rq_builder.form(form);
         }
+
         if let Some(aws) = &request.aws_auth {
-            let credentials = AwsCredentials::new(aws.key.clone(), aws.secret.clone(), None, None);
+            let credentials =
+                AwsCredentials::new(aws.key.clone(), aws.secret.clone(), aws.token.clone(), None);
             let default_region = "us-east-1".to_string();
             let reg_str = aws.region.as_ref().unwrap_or(&default_region);
 
@@ -106,6 +109,10 @@ impl Sender for ReqwestSender {
                         .parse()
                         .unwrap(),
                 );
+            }
+
+            if let Some(token) = aws.token.as_ref() {
+                headers.insert("X-Amz-Security-Token", token.parse()?);
             }
 
             rq_builder = rq_builder.headers(headers);

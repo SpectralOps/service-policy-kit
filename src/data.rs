@@ -262,6 +262,14 @@ impl Interaction {
             aws.key = render_with_vars(aws.key.clone(), &vars, &fmtstring);
             aws.secret = render_with_vars(aws.secret.clone(), &vars, &fmtstring);
             aws.service = render_with_vars(aws.service.clone(), &vars, &fmtstring);
+            if let Some(token) = &aws.token {
+                let render_value = render_with_vars(token.clone(), &vars, &fmtstring);
+                if &render_value == token {
+                    aws.token = None;
+                } else {
+                    aws.token = Some(render_value);
+                }
+            }
             aws.region = aws
                 .region
                 .as_ref()
@@ -321,7 +329,7 @@ impl Interaction {
         if let Some(params) = self.request.params.as_ref() {
             let missing_params = params
                 .iter()
-                .filter(|p| !context.vars_bag.contains_key(&p.name))
+                .filter(|p| !context.vars_bag.contains_key(&p.name) && !p.optional)
                 .collect::<Vec<_>>();
             if !missing_params.is_empty() {
                 return Err(anyhow!(
@@ -358,6 +366,8 @@ pub struct CertificateDetail {
 pub struct Param {
     pub name: String,
     pub desc: String,
+    #[serde(default)]
+    pub optional: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -373,6 +383,7 @@ pub struct AWSAuth {
     pub service: String,
     pub key: String,
     pub secret: String,
+    pub token: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
