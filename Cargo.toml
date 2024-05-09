@@ -11,28 +11,27 @@ description = "A toolkit to verify services against security policies"
 name = "service_policy_kit"
 
 [dependencies]
-reqwest={version = "0.11.4", features=["blocking", "json"] }
-serde="1"
-serde_json="1"
-serde_derive="1"
-serde_yaml="0.7.5"
-fancy-regex="0.7.1"
-log="0.4.14"
-env_logger="0.9.0"
-histogram="0.6.9"
-atty="0.2.14"
-native-tls = "0.2.8"
-x509-parser = "0.4.1"
-chrono = "0.4.6"
-junit-report="0.6.0"
-subprocess = "0.1.18"
-difference = "2.0.0"
-openapi = "0.1.5"
-anyhow = "1.0.44"
-console = "0.14.1"
-maplit="1.0.2"
-rusoto_core = "0.47.0"
+reqwest = { version = "0.12.4", features = ["blocking", "json"] }
+serde = { version = "1" }
+serde_json = { version = "1" }
+serde_derive = { version = "1" }
+serde_yaml = { version = "0.9" }
+fancy-regex = { version = "0.13.0" }
+log = { version = "0.4.14" }
+# env_logger = { version = "0.9.0" }
+histogram = { version = "0.6.9" }
+# atty = { version = "0.2.14" }
+native-tls = { version = "0.2.8" }
+x509-parser = { version = "0.4.1" }
+chrono = { version = "0.4.6" }
+junit-report = { version = "0.6.0" }
+subprocess = { version = "0.2.9" }
+difference = { version = "2.0.0" }
+openapi = { version = "0.1.5" }
+anyhow = { version = "1.0.44" }
+console = { version = "0.14.1" }
+maplit = { version = "1.0.2" }
+rusoto_core = { version = "0.48.0" }
 
 [dev-dependencies]
 mockito = "0.30.0"
-
