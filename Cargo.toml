@@ -5,6 +5,7 @@ authors = ["Dotan Nahum <jondotan@gmail.com>"]
 edition = "2018"
 license = "Apache-2.0"
 description = "A toolkit to verify services against security policies"
+repository = "https://github.com/SpectralOps/service-policy-kit"
 
 
 [lib]
