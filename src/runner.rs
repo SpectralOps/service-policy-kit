@@ -12,11 +12,12 @@ pub struct RunOptions {
 }
 impl Default for RunOptions {
     fn default() -> Self {
-        RunOptions::build(None, false, Some("console".into()), true)
+        Self::build(None, false, Some("console".into()), true)
     }
 }
 
 impl RunOptions {
+    #[must_use]
     pub fn build(
         dry_run: Option<String>,
         flip: bool,
@@ -29,14 +30,20 @@ impl RunOptions {
         if verbose {
             rc.insert("verbose".to_string(), "true".to_string());
         }
-        reporters.insert(reporter.unwrap_or_else(|| "console".to_string()), rc);
-        RunOptions {
+
+        if let Some(reporter) = reporter {
+            reporters.insert(reporter, rc);
+        }
+
+        Self {
             sender,
-            reporters,
             flip,
+            reporters,
         }
     }
 }
+
+#[allow(clippy::module_name_repetitions)]
 pub struct SequenceRunner<'a> {
     sender: &'a dyn Sender,
     flip: bool,
@@ -49,13 +56,14 @@ impl<'a> SequenceRunner<'a> {
         flip: bool,
         reporters: HashMap<String, ReporterConfig>,
     ) -> Self {
-        SequenceRunner {
-            flip,
+        Self {
             sender,
+            flip,
             reporters,
         }
     }
 
+    #[must_use]
     pub fn from_opts(run_opts: &'a RunOptions) -> Self {
         SequenceRunner {
             flip: run_opts.flip,
@@ -89,6 +97,7 @@ impl<'a> SequenceRunner<'a> {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct RunnerReport {
     pub ok: bool,
     pub results: Vec<CheckResult>,
@@ -96,8 +105,8 @@ pub struct RunnerReport {
 
 #[cfg(test)]
 mod tests {
-    use mockito::{mock, server_address};
     use super::*;
+    use mockito::{mock, server_address};
 
     const ITC_OK: &str = include_str!("fixtures/ok.yaml");
     const ITC_OK_THEN_ERROR: &str = include_str!("fixtures/ok-then-error.yaml");
@@ -110,21 +119,21 @@ mod tests {
 
         let sender = SenderBuilder::build(SenderOptions { dry_run: None });
         let runner = SequenceRunner::new(sender.as_ref(), flip, HashMap::new());
-        let report = runner.run(&mut ctx, &interactions);
-        return report;
+
+        runner.run(&mut ctx, &interactions)
     }
 
     #[test]
     fn test_runner_return_status_no_violations() {
         let report = execute_test(ITC_OK, false);
-        assert_eq!(report.ok, true);
+        assert!(report.ok);
     }
 
     #[test]
     fn test_runner_return_status_with_violations() {
         let _m1 = mock("GET", "/api/ok").with_status(400).create();
         let report = execute_test(ITC_OK, false);
-        assert_eq!(report.ok, false);
+        assert!(!report.ok);
     }
 
     #[test]
@@ -132,21 +141,21 @@ mod tests {
         let _m1 = mock("GET", "/api/ok").with_status(200).create();
         let _m2 = mock("GET", "/api/error").with_status(200).create();
         let report = execute_test(ITC_OK_THEN_ERROR, false);
-        assert_eq!(report.ok, false);
+        assert!(!report.ok);
     }
 
     #[test]
     fn test_runner_flip_return_status_no_violations() {
         let _m1 = mock("GET", "/api/ok").create();
         let report = execute_test(ITC_OK, true);
-        assert_eq!(report.ok, false);
+        assert!(!report.ok);
     }
 
     #[test]
     fn test_runner_flip_return_status_with_violations() {
         let _m1 = mock("GET", "/api/ok").with_status(400).create();
         let report = execute_test(ITC_OK, true);
-        assert_eq!(report.ok, true);
+        assert!(report.ok);
     }
 
     #[test]
@@ -154,6 +163,6 @@ mod tests {
         let _m1 = mock("GET", "/api/ok").with_status(200).create();
         let _m2 = mock("GET", "/api/error").with_status(200).create();
         let report = execute_test(ITC_OK_THEN_ERROR, true);
-        assert_eq!(report.ok, false);
+        assert!(!report.ok);
     }
 }

@@ -10,6 +10,7 @@ pub struct Reporter<'a> {
 unsafe impl<'a> Sync for Reporter<'a> {}
 
 impl<'a> Reporter<'a> {
+    #[must_use]
     pub fn new(reporters: &HashMap<String, ReporterConfig>) -> Self {
         Reporter {
             outputs: reporters
@@ -24,18 +25,18 @@ impl<'a> Reporter<'a> {
         }
     }
     pub fn start(&mut self, inter: &Interaction) {
-        self.outputs.iter_mut().for_each(|r| r.start(inter))
+        self.outputs.iter_mut().for_each(|r| r.start(inter));
     }
 
     pub fn report(&mut self, inter: &Interaction, check_result: &CheckResult) {
         self.outputs
             .iter_mut()
-            .for_each(|r| r.report(inter, check_result))
+            .for_each(|r| r.report(inter, check_result));
     }
 
     pub fn end(&mut self, interactions: &[Interaction], results: &[CheckResult]) {
         self.outputs
             .iter_mut()
-            .for_each(|r| r.end(interactions, results))
+            .for_each(|r| r.end(interactions, results));
     }
 }

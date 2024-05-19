@@ -1,7 +1,8 @@
 use crate::vars::extract;
 use anyhow::anyhow;
 use anyhow::Result as AnyResult;
-use log::*;
+use log::{debug, error};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
 use subprocess::{Popen, PopenConfig, Redirection};
@@ -160,7 +161,7 @@ pub struct Context {
 }
 impl Default for Context {
     fn default() -> Self {
-        Context {
+        Self {
             vars_bag: HashMap::new(),
             response_bag: HashMap::new(),
             config: Config { var_braces: None },
@@ -168,22 +169,17 @@ impl Default for Context {
     }
 }
 impl Context {
+    #[must_use]
     pub fn new() -> Self {
-        Context::default()
+        Self::default()
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Runner {
     pub exit_on_failure: bool,
 }
-impl Default for Runner {
-    fn default() -> Runner {
-        Runner {
-            exit_on_failure: false,
-        }
-    }
-}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SequenceInteractions {
     pub http_interactions: Vec<Interaction>,
@@ -204,14 +200,15 @@ pub struct Interaction {
     pub cert: Option<CertificateDetail>,
 }
 impl Interaction {
-    pub fn sequence_interactions_from_yaml(content: &str) -> AnyResult<Vec<Interaction>> {
+    pub fn sequence_interactions_from_yaml(content: &str) -> AnyResult<Vec<Self>> {
         let result: SequenceInteractions = serde_yaml::from_str(content)?;
         Ok(result.http_interactions)
     }
-    pub fn from_yaml(content: &str) -> AnyResult<Interaction> {
+    pub fn from_yaml(content: &str) -> AnyResult<Self> {
         let result = serde_yaml::from_str(content)?;
         Ok(result)
     }
+    #[must_use]
     pub fn types(&self) -> Vec<&str> {
         let mut v = vec![];
         if self.benchmark.is_some() {
@@ -237,14 +234,15 @@ impl Interaction {
         let responses = &context.response_bag;
         let response_vars = &context.vars_bag;
 
-        let mut vars: HashMap<String, String> = if let Some(command) = &req.vars_command {
-            get_vars_from_cmd(command, &req, responses)
-        } else {
-            HashMap::new()
-        };
-        response_vars.iter().for_each(|(k, v)| {
+        let mut vars: HashMap<String, String> = req
+            .vars_command
+            .as_ref()
+            .map_or_else(HashMap::new, |command| {
+                get_vars_from_cmd(command, &req, responses)
+            });
+        for (k, v) in response_vars {
             vars.insert(k.to_string(), v.to_string());
-        });
+        }
 
         req.uri = render_with_vars(req.uri.clone(), &vars, &fmtstring);
         req.uri_list = req.uri_list.map(|uri_list| {
@@ -256,7 +254,7 @@ impl Interaction {
         if let Some(basic) = req.basic_auth.as_mut() {
             basic.user = render_with_vars(basic.user.clone(), &vars, &fmtstring);
             if let Some(password) = basic.password.as_ref() {
-                basic.password = Some(render_with_vars(password.clone(), &vars, &fmtstring))
+                basic.password = Some(render_with_vars(password.clone(), &vars, &fmtstring));
             }
         }
 
@@ -264,6 +262,14 @@ impl Interaction {
             aws.key = render_with_vars(aws.key.clone(), &vars, &fmtstring);
             aws.secret = render_with_vars(aws.secret.clone(), &vars, &fmtstring);
             aws.service = render_with_vars(aws.service.clone(), &vars, &fmtstring);
+            if let Some(token) = &aws.token {
+                let render_value = render_with_vars(token.clone(), &vars, &fmtstring);
+                if &render_value == token {
+                    aws.token = None;
+                } else {
+                    aws.token = Some(render_value);
+                }
+            }
             aws.region = aws
                 .region
                 .as_ref()
@@ -296,12 +302,13 @@ impl Interaction {
         res.request = req;
         Ok(res)
     }
+
     pub fn send(&self, sender: &dyn Sender) -> AnyResult<Response> {
         let mut resp = sender.send(self)?;
 
         if let Some(vars) = &self.request.vars {
-            let response_vars = extract(&resp, vars);
-            resp.vars = Some(response_vars)
+            let response_vars = extract(&resp, vars)?;
+            resp.vars = Some(response_vars);
         }
 
         Ok(resp)
@@ -322,7 +329,7 @@ impl Interaction {
         if let Some(params) = self.request.params.as_ref() {
             let missing_params = params
                 .iter()
-                .filter(|p| !context.vars_bag.contains_key(&p.name))
+                .filter(|p| !context.vars_bag.contains_key(&p.name) && !p.optional)
                 .collect::<Vec<_>>();
             if !missing_params.is_empty() {
                 return Err(anyhow!(
@@ -359,6 +366,8 @@ pub struct CertificateDetail {
 pub struct Param {
     pub name: String,
     pub desc: String,
+    #[serde(default)]
+    pub optional: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -374,6 +383,7 @@ pub struct AWSAuth {
     pub service: String,
     pub key: String,
     pub secret: String,
+    pub token: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

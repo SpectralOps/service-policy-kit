@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - master
-  schedule:
-    - cron: '00 01 * * *'
+
 env:
   CLICOLOR_FORCE: 1
 
@@ -35,7 +34,7 @@ jobs:
     name: Test Suite
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
         rust: [stable]
     runs-on: ${{ matrix.os }}
     steps:

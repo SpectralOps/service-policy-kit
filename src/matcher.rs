@@ -2,10 +2,12 @@ use crate::data::{Cause, HeaderList, Response, Violation};
 use fancy_regex::Regex;
 use std::collections::HashMap;
 
+#[allow(clippy::module_name_repetitions)]
 pub struct RegexMatcher {
     pub kind: String,
 }
 impl RegexMatcher {
+    #[must_use]
     pub fn new(kind: &str) -> Self {
         Self {
             kind: kind.to_string(),
@@ -56,7 +58,7 @@ impl RegexMatcher {
                     subject: "headers".to_string(),
                     on: Some("all headers".to_string()),
                     wire: None,
-                    recorded: format!("{:?}", recorded_headers),
+                    recorded: format!("{recorded_headers:?}"),
                 });
             }
             let wire_headers = wire_headers.as_ref().unwrap();
@@ -107,7 +109,7 @@ impl RegexMatcher {
                     // XXX change 'on' to 'field'
                     on: Some("all vars".to_string()), // XXX should be None
                     wire: None,
-                    recorded: format!("{:?}", recorded_vars),
+                    recorded: format!("{recorded_vars:?}"),
                 });
             }
             let wire_vars = wire_vars.as_ref().unwrap();
@@ -131,7 +133,7 @@ impl RegexMatcher {
                     on: Some(key.to_string()),
                     wire: Some(format!(
                         "{:?}",
-                        wire_vars.get(key.as_str()).unwrap_or(&"".to_string())
+                        wire_vars.get(key.as_str()).unwrap_or(&String::new())
                     )),
                     recorded: format!("{:?}", badly_matched_vars.1),
                 });
@@ -139,35 +141,40 @@ impl RegexMatcher {
         }
         None
     }
+
+    #[must_use]
     pub fn is_match(
         &self,
         wire_response: &Response,
         recorded_response: Option<&Response>,
     ) -> Vec<Violation> {
-        if let Some(recorded_response) = recorded_response {
-            vec![
-                self.match_field("body", &wire_response.body, &recorded_response.body),
-                self.match_field(
-                    "status_code",
-                    &wire_response.status_code,
-                    &recorded_response.status_code,
-                ),
-                self.match_headers(&wire_response.headers, &recorded_response.headers),
-                self.match_vars(&wire_response.vars, &recorded_response.vars),
-            ]
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>()
-        } else {
-            vec![Violation {
-                kind: self.kind.clone(),
-                cause: Cause::RecordedMissing,
-                subject: "response".to_string(),
-                // XXX change 'on' to 'field'
-                on: None,
-                wire: None,
-                recorded: format!("{:?}", wire_response),
-            }]
-        }
+        recorded_response.map_or_else(
+            || {
+                vec![Violation {
+                    kind: self.kind.clone(),
+                    cause: Cause::RecordedMissing,
+                    subject: "response".to_string(),
+                    // XXX change 'on' to 'field'
+                    on: None,
+                    wire: None,
+                    recorded: format!("{wire_response:?}"),
+                }]
+            },
+            |recorded_response| {
+                vec![
+                    self.match_field("body", &wire_response.body, &recorded_response.body),
+                    self.match_field(
+                        "status_code",
+                        &wire_response.status_code,
+                        &recorded_response.status_code,
+                    ),
+                    self.match_headers(&wire_response.headers, &recorded_response.headers),
+                    self.match_vars(&wire_response.vars, &recorded_response.vars),
+                ]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+            },
+        )
     }
 }

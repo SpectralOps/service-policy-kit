@@ -1,11 +1,3 @@
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate serde_yaml;
-
-extern crate env_logger;
-
-extern crate histogram;
 extern crate log;
 extern crate reqwest;
 pub mod bench;
@@ -76,7 +68,7 @@ mod tests {
             .create();
         let _m2 = mock("GET", "/joe").with_body("hello, joe").create();
         let results = run_interactions(ITC_JSON);
-        println!("{:?}", results);
+        println!("{results:?}");
         assert_eq!(results.len(), 0);
     }
 
@@ -89,7 +81,7 @@ mod tests {
             .with_body("hello, erlang")
             .create();
         let results = run_interactions(ITC_WITH_DEFAULTS);
-        println!("{:?}", results);
+        println!("{results:?}");
         assert_eq!(results.len(), 0);
     }
 }

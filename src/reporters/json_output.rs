@@ -1,4 +1,5 @@
 use crate::data::{CheckResult, Interaction, ReporterConfig, ReporterOutput};
+use serde::Serialize;
 use serde_json;
 
 #[derive(Serialize)]
@@ -10,15 +11,15 @@ pub struct JsonOutput {}
 unsafe impl Sync for JsonOutput {}
 
 impl JsonOutput {
-    pub fn new(_config: &ReporterConfig) -> JsonOutput {
-        JsonOutput {}
+    pub const fn new(_config: &ReporterConfig) -> Self {
+        Self {}
     }
 }
 impl ReporterOutput for JsonOutput {
     fn end(&mut self, interactions: &[Interaction], results: &[CheckResult]) {
         println!(
             "{}",
-            serde_json::to_value(&EndEvent {
+            serde_json::to_value(EndEvent {
                 interactions,
                 results,
             })

@@ -8,26 +8,24 @@ use std::time::Instant;
 use fancy_regex::Regex;
 use x509_parser::parse_x509_der;
 pub const NAME: &str = "cert";
+
+#[derive(Default)]
 pub struct Cert {}
 
-impl Default for Cert {
-    fn default() -> Self {
-        Self {}
-    }
-}
 impl Cert {
+    #[must_use]
     pub fn new() -> Self {
-        Cert::default()
+        Self::default()
     }
 }
-fn error_violation(err: String) -> Vec<Violation> {
+fn error_violation(err: &str) -> Vec<Violation> {
     vec![Violation {
         kind: NAME.to_string(),
         cause: Cause::Error,
         on: Some("response".to_string()),
         subject: "request".to_string(),
-        wire: Some(format!("error: {}", err)),
-        recorded: "".to_string(),
+        wire: Some(format!("error: {err}")),
+        recorded: String::new(),
     }]
 }
 impl Check for Cert {
@@ -45,7 +43,7 @@ impl Check for Cert {
                     return CheckResult {
                         kind: NAME.to_string(),
                         request: inter.request.clone(),
-                        violations: error_violation(format!("{}", err)),
+                        violations: error_violation(&err.to_string()),
                         response: None,
                         duration: Some(now.elapsed()),
                         error: Some(err.to_string()),
@@ -63,7 +61,7 @@ impl Check for Cert {
                             return CheckResult {
                                 kind: NAME.to_string(),
                                 request: inter.request.clone(),
-                                violations: error_violation(format!("{}", err)),
+                                violations: error_violation(&err.to_string()),
                                 response: None,
                                 duration: Some(now.elapsed()),
                                 error: None,
@@ -77,7 +75,7 @@ impl Check for Cert {
                     return CheckResult {
                         kind: NAME.to_string(),
                         request: inter.request.clone(),
-                        violations: error_violation(format!("{}", err)),
+                        violations: error_violation(&err.to_string()),
                         response: None,
                         duration: Some(now.elapsed()),
                         error: Some(err.to_string()),

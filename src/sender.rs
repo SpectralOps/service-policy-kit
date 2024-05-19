@@ -1,20 +1,22 @@
 use crate::data::{Interaction, Response, Sender};
 use anyhow::Result as AnyResult;
-use log::*;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
-use rusoto_core::credential::AwsCredentials;
-use rusoto_core::signature::SignedRequest;
-use rusoto_core::Region;
+use rusoto_core::{credential::AwsCredentials, signature::SignedRequest, Region};
 
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::Duration;
 
+#[allow(clippy::module_name_repetitions)]
 pub struct SenderOptions {
     pub dry_run: Option<String>,
 }
+
+#[allow(clippy::module_name_repetitions)]
 pub struct SenderBuilder {}
+
 impl SenderBuilder {
+    #[must_use]
     pub fn build(opts: SenderOptions) -> Box<dyn Sender> {
         let s: Box<dyn Sender> = match opts.dry_run {
             Some(examples_key) => Box::new(DrySender::new(&examples_key)),
@@ -24,23 +26,23 @@ impl SenderBuilder {
     }
 }
 
+#[derive(Default)]
+#[allow(clippy::module_name_repetitions)]
 pub struct ReqwestSender {}
-impl Default for ReqwestSender {
-    fn default() -> Self {
-        ReqwestSender {}
-    }
-}
+
 impl ReqwestSender {
+    #[must_use]
     pub fn new() -> Self {
-        ReqwestSender::default()
+        Self::default()
     }
 }
 impl Sender for ReqwestSender {
+    #[allow(clippy::too_many_lines)]
     fn send(&self, inter: &Interaction) -> AnyResult<Response> {
         let request = &inter.request;
         // as_request -> RQRequest
         let uri = request.uri.clone();
-        debug!("uri with vars: {}", uri);
+        log::debug!("uri with vars: {}", uri);
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_millis(request.timeout_ms.unwrap_or(10000)))
             .build()
@@ -62,8 +64,10 @@ impl Sender for ReqwestSender {
         if let Some(form) = &request.form {
             rq_builder = rq_builder.form(form);
         }
+
         if let Some(aws) = &request.aws_auth {
-            let credentials = AwsCredentials::new(aws.key.clone(), aws.secret.clone(), None, None);
+            let credentials =
+                AwsCredentials::new(aws.key.clone(), aws.secret.clone(), aws.token.clone(), None);
             let default_region = "us-east-1".to_string();
             let reg_str = aws.region.as_ref().unwrap_or(&default_region);
 
@@ -92,36 +96,38 @@ impl Sender for ReqwestSender {
 
             let rh = signed_request.headers();
 
-            [
+            for h in &[
                 "x-amz-content-sha256",
                 "x-amz-date",
                 "authorization",
                 "content-type",
                 "host",
-            ]
-            .iter()
-            .for_each(|h| {
+            ] {
                 headers.insert(
-                    h.to_string().parse::<HeaderName>().unwrap(),
+                    (*h).to_string().parse::<HeaderName>().unwrap(),
                     String::from_utf8_lossy(&rh.get(*h).unwrap()[0])
                         .parse()
                         .unwrap(),
                 );
-            });
+            }
+
+            if let Some(token) = aws.token.as_ref() {
+                headers.insert("X-Amz-Security-Token", token.parse()?);
+            }
 
             rq_builder = rq_builder.headers(headers);
         }
 
         if let Some(headers) = &request.headers {
             let mut headersmap = HeaderMap::new();
-            headers.iter().for_each(|(key, val)| {
-                val.iter().for_each(|v| {
+            for (key, val) in headers {
+                for v in val {
                     headersmap.insert(
                         key.to_lowercase().parse::<HeaderName>().unwrap(),
                         HeaderValue::from_str(v.clone().as_str()).unwrap(),
                     );
-                });
-            });
+                }
+            }
             rq_builder = rq_builder.headers(headersmap);
         };
 
@@ -158,13 +164,15 @@ impl Sender for ReqwestSender {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct DrySender {
     example: String,
 }
 
 impl DrySender {
+    #[must_use]
     pub fn new(example: &str) -> Self {
-        DrySender {
+        Self {
             example: example.to_string(),
         }
     }
@@ -176,10 +184,9 @@ impl Sender for DrySender {
         if let Some(examples) = &inter.examples {
             if let Some(ex) = examples.get(&self.example) {
                 return Ok(ex.clone());
-            } else {
-                eprintln!("dry_send not found example: {}", self.example);
-                eprintln!("examples: {:?}", inter.examples);
             }
+            eprintln!("dry_send not found example: {}", self.example);
+            eprintln!("examples: {:?}", inter.examples);
         }
         // no example was given
         Ok(Response {

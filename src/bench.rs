@@ -1,6 +1,5 @@
 use crate::data::{Cause, Check, CheckResult, Context, Interaction, Sender, Violation};
 use histogram::Histogram;
-use log::*;
 use std::time::{Duration, Instant};
 pub struct Bench<'a> {
     sender: &'a dyn Sender,
@@ -36,7 +35,7 @@ impl<'a> Check for Bench<'a> {
 
             let inter = prepared.ok().unwrap();
             for _ in 0..benchmark.times {
-                debug!("Bench request: {:?}", &inter.request);
+                log::debug!("Bench request: {:?}", &inter.request);
                 let now = Instant::now();
                 let res = inter.send(self.sender);
                 match res {
@@ -67,7 +66,7 @@ impl<'a> Check for Bench<'a> {
                     subject: "p95".to_string(),
                     wire: Some(p95.to_string()),
                     recorded: benchmark.p95_ms.to_string(),
-                })
+                });
             }
             // verify matching before considering as bench candidate
             let p99 = h.percentile(99.0).unwrap();
@@ -79,7 +78,7 @@ impl<'a> Check for Bench<'a> {
                     subject: "p99".to_string(),
                     wire: Some(p99.to_string()),
                     recorded: benchmark.p99_ms.to_string(),
-                })
+                });
             }
 
             let avg = h.mean().unwrap();
@@ -91,7 +90,7 @@ impl<'a> Check for Bench<'a> {
                     subject: "avg".to_string(),
                     wire: Some(avg.to_string()),
                     recorded: benchmark.avg_ms.to_string(),
-                })
+                });
             }
 
             if total > u128::from(benchmark.time_ms) {
@@ -102,7 +101,7 @@ impl<'a> Check for Bench<'a> {
                     subject: "time".to_string(),
                     wire: Some(total.to_string()),
                     recorded: benchmark.time_ms.to_string(),
-                })
+                });
             }
 
             CheckResult {
